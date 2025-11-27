@@ -87,7 +87,7 @@ func main() {
 	if err != nil {
 		log.Printf("Error searching streams: %v", err)
 	} else {
-		fmt.Printf("Found %d results\n", results.Total)
+		fmt.Printf("Found %d results\n", results.Pagination.TotalItems)
 		for _, result := range results.Results {
 			fmt.Printf("  - %s by %s\n", result.Title, result.UserDisplayName)
 			for _, highlight := range result.Highlights {

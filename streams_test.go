@@ -28,9 +28,12 @@ func TestListStreams(t *testing.T) {
 						CreatedAt:  time.Now(),
 					},
 				},
-				Total:    1,
-				Page:     1,
-				PageSize: 20,
+				Pagination: Pagination{
+					Page:       1,
+					PageSize:   20,
+					TotalItems: 1,
+					TotalPages: 1,
+				},
 			}
 			json.NewEncoder(w).Encode(resp)
 		})
@@ -55,10 +58,13 @@ func TestListStreams(t *testing.T) {
 			}
 
 			resp := ListStreamsResponse{
-				Streams:  []Stream{},
-				Total:    0,
-				Page:     1,
-				PageSize: 20,
+				Streams: []Stream{},
+				Pagination: Pagination{
+					Page:       1,
+					PageSize:   20,
+					TotalItems: 0,
+					TotalPages: 0,
+				},
 			}
 			json.NewEncoder(w).Encode(resp)
 		})
@@ -103,9 +109,12 @@ func TestSearchStreams(t *testing.T) {
 					CreatedAt:       time.Now(),
 				},
 			},
-			Total:    1,
-			Page:     1,
-			PageSize: 20,
+			Pagination: Pagination{
+				Page:       1,
+				PageSize:   20,
+				TotalItems: 1,
+				TotalPages: 1,
+			},
 		}
 		json.NewEncoder(w).Encode(resp)
 	})

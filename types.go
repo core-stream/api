@@ -117,10 +117,8 @@ type Stream struct {
 
 // ListStreamsResponse is the response for listing streams.
 type ListStreamsResponse struct {
-	Streams  []Stream `json:"streams"`
-	Total    int      `json:"total"`
-	Page     int      `json:"page"`
-	PageSize int      `json:"page_size"`
+	Streams    []Stream   `json:"streams"`
+	Pagination Pagination `json:"pagination"`
 }
 
 // GetStreamResponse wraps a single stream response.
@@ -140,10 +138,8 @@ type SearchResult struct {
 
 // SearchStreamsResponse is the response for searching streams.
 type SearchStreamsResponse struct {
-	Results  []SearchResult `json:"results"`
-	Total    int            `json:"total"`
-	Page     int            `json:"page"`
-	PageSize int            `json:"page_size"`
+	Results    []SearchResult `json:"results"`
+	Pagination Pagination     `json:"pagination"`
 }
 
 // TranscriptSegment represents a single transcript segment.
