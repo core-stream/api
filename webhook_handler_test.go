@@ -238,4 +238,61 @@ func TestWebhookReceiver_ServeHTTP(t *testing.T) {
 			t.Errorf("expected status 500, got %d", rec.Code)
 		}
 	})
+
+	t.Run("verification disabled - no signature", func(t *testing.T) {
+		handlerCalled := false
+		receiver := NewWebhookReceiver("", func(n *WebhookNotification) error {
+			handlerCalled = true
+			return nil
+		}, WithoutSignatureVerification())
+
+		payload := WebhookNotification{
+			ID:            "notif_123",
+			AlertID:       "alert_456",
+			MatchedPhrase: "test phrase",
+			Timestamp:     time.Now(),
+		}
+		body, _ := json.Marshal(payload)
+
+		req := httptest.NewRequest(http.MethodPost, "/webhook", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		receiver.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rec.Code)
+		}
+		if !handlerCalled {
+			t.Error("handler was not called")
+		}
+	})
+
+	t.Run("verification disabled - invalid signature ignored", func(t *testing.T) {
+		handlerCalled := false
+		receiver := NewWebhookReceiver("", func(n *WebhookNotification) error {
+			handlerCalled = true
+			return nil
+		}, WithoutSignatureVerification())
+
+		payload := WebhookNotification{
+			ID:            "notif_123",
+			AlertID:       "alert_456",
+			MatchedPhrase: "test phrase",
+			Timestamp:     time.Now(),
+		}
+		body, _ := json.Marshal(payload)
+
+		req := httptest.NewRequest(http.MethodPost, "/webhook", bytes.NewReader(body))
+		req.Header.Set(SignatureHeader, "invalid-signature")
+		rec := httptest.NewRecorder()
+
+		receiver.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", rec.Code)
+		}
+		if !handlerCalled {
+			t.Error("handler was not called")
+		}
+	})
 }

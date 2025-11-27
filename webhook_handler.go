@@ -20,36 +20,45 @@ const (
 // WebhookHandler is a function that processes validated webhook notifications.
 type WebhookHandler func(notification *WebhookNotification) error
 
+// WebhookReceiverOption configures the WebhookReceiver.
+type WebhookReceiverOption func(*WebhookReceiver)
+
+// WithoutSignatureVerification disables HMAC signature verification.
+// WARNING: Only use this in development or when verification is handled elsewhere.
+func WithoutSignatureVerification() WebhookReceiverOption {
+	return func(r *WebhookReceiver) {
+		r.skipVerification = true
+	}
+}
+
 // WebhookReceiver handles incoming webhooks with signature verification.
 // It implements http.Handler for easy integration with HTTP servers.
 type WebhookReceiver struct {
-	secret      []byte
-	handler     WebhookHandler
-	maxBodySize int64
+	secret           []byte
+	handler          WebhookHandler
+	maxBodySize      int64
+	skipVerification bool
 }
 
 // NewWebhookReceiver creates a new webhook receiver.
 // The secret is used for HMAC-SHA256 signature verification.
 // The handler is called for each validated webhook notification.
-func NewWebhookReceiver(secret string, handler WebhookHandler) *WebhookReceiver {
-	maxBodySize := int64(MaxWebhookBodySize)
-	return &WebhookReceiver{
+func NewWebhookReceiver(secret string, handler WebhookHandler, opts ...WebhookReceiverOption) *WebhookReceiver {
+	r := &WebhookReceiver{
 		secret:      []byte(secret),
 		handler:     handler,
-		maxBodySize: maxBodySize,
+		maxBodySize: int64(MaxWebhookBodySize),
 	}
+	for _, opt := range opts {
+		opt(r)
+	}
+	return r
 }
 
 // ServeHTTP implements http.Handler.
 func (r *WebhookReceiver) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	signature := req.Header.Get(SignatureHeader)
-	if signature == "" {
-		http.Error(w, ErrMissingSignature.Error(), http.StatusUnauthorized)
 		return
 	}
 
@@ -60,9 +69,17 @@ func (r *WebhookReceiver) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	if !verifySignature(body, signature, r.secret) {
-		http.Error(w, ErrInvalidSignature.Error(), http.StatusUnauthorized)
-		return
+	if !r.skipVerification {
+		signature := req.Header.Get(SignatureHeader)
+		if signature == "" {
+			http.Error(w, ErrMissingSignature.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		if !verifySignature(body, signature, r.secret) {
+			http.Error(w, ErrInvalidSignature.Error(), http.StatusUnauthorized)
+			return
+		}
 	}
 
 	notification, err := ParseWebhookNotification(body)
